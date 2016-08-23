@@ -26,9 +26,35 @@ using System.Diagnostics;
 
 namespace IntegrationTests.Shared
 {
+    /// <summary>
+    /// Tests relationships and searching driven by user reports which may have triggered crashes.
+    /// </summary>
     [TestFixture, Preserve(AllMembers = true)]
     public class ComplexRelationshipTests
     {
+        public class WellnessEventOcurrence : RealmObject
+        {
+            [ObjectId]
+            public int Id { get; set; }
+            public virtual WellnessEvent WellnessEvent { get; set; }
+            public int WellnessEventID { get; set; }
+            public DateTimeOffset OccurenceDate { get; set; }
+        }
+
+        public class WellnessEvent : RealmObject
+        {
+            [ObjectId]
+            public int Id { get; set; }
+            public DateTimeOffset DateCreated { get; set; }
+            public int EventOrClass { get; set; }
+            public int PortalID { get; set; }
+            public int DisplayPriority { get; set; }
+            public string Title { get; set; }
+            public string Description { get; set; }
+        }
+
+
+
         // based on user report, needs threee classes
         // will be searching on values coming from another table
 
@@ -147,6 +173,15 @@ namespace IntegrationTests.Shared
             });
         }
 
+
+        // From issue 723, was getting a hard SIGABRT
+        [Test]
+        public void TestWellnessCrashOnSingleRelatedCheck()
+        {
+            var anyWithWellness = _realm.All<WellnessEventOcurrence>().Where(x => x.WellnessEvent.EventOrClass == 1);
+            Assert.NotNull(anyWithWellness);
+            Assert.That(anyWithWellness.Count(), Is.EqualTo(0));
+        }
 
         [Test]
         public void AnyInRelatedSearch()
